@@ -1,0 +1,99 @@
+@implements IDisposable
+
+@inject NavigationManager NavigationManager
+
+<div class="top-row ps-3 navbar navbar-dark sidebar-header">
+    <div class="container-fluid d-flex align-items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-piggy-bank-fill text-primary" viewBox="0 0 16 16">
+            <path d="M7.964 1.527c-2.977 0-5.571 1.704-6.32 4.125h-.55A1 1 0 0 0 .11 6.824l.254 1.46a1.5 1.5 0 0 0 1.478 1.243h.263c.3.513.688.978 1.145 1.382l-.729 2.477a.5.5 0 0 0 .48.631h1.all.5a.5.5 0 0 0 .471-.332l.482-1.351c.635.173 1.31.267 2.011.267.707 0 1.388-.095 2.028-.272l.483 1.366a.5.5 0 0 0 .469.326h1.5a.5.5 0 0 0 .48-.631l-.72-2.452c1.236-1.046 1.987-2.583 1.987-4.22 0-3.107-2.787-5.627-6.035-5.627zm5.559 5.763c.763 0 1.384.62 1.384 1.384s-.621 1.384-1.384 1.384a1.384 1.384 0 1 1 0-2.768z"/>
+        </svg>
+        <a class="navbar-brand fw-bold fs-5" href="" style="color: white; text-decoration: none;">Budget<span style="color: var(--accent-primary);">4U</span></a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column py-3" aria-label="Main navigation">
+
+        <div class="nav-section-label px-3 mb-1" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);">Overview</div>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <i class="bi bi-grid-1x2-fill me-2"></i> Dashboard
+            </NavLink>
+        </div>
+
+        <div class="nav-section-label px-3 mt-3 mb-1" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);">Finance</div>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="transactions">
+                <i class="bi bi-arrow-left-right me-2"></i> Transactions
+            </NavLink>
+        </div>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="categories">
+                <i class="bi bi-tags-fill me-2"></i> Categories
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-section-label px-3 mt-3 mb-1" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);">Account</div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="Account/Manage">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <span style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom;">
+                            @context.User.Identity?.Name
+                        </span>
+                    </NavLink>
+                </div>
+                <div class="nav-item">
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
+                            <i class="bi bi-box-arrow-right me-2"></i> Logout
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-section-label px-3 mt-3 mb-1" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);">Account</div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <i class="bi bi-person-plus-fill me-2"></i> Register
+                    </NavLink>
+                </div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Login
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </nav>
+</div>
+
+@code {
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
+

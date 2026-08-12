@@ -1,0 +1,171 @@
+@page "/transactions"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using budget4u.Data
+@using budget4u.Data.Models
+@using System.Security.Claims
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Transactions - Budget4U</PageTitle>
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">My Transactions</h1>
+    <a href="/transactions/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> New Transaction
+    </a>
+</div>
+
+@if (errorMessage != null)
+{
+    <div class="alert alert-warning alert-dismissible mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+    </div>
+}
+
+@if (transactions == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!transactions.Any())
+{
+    <div class="alert alert-info">
+        You haven't logged any transactions yet. Log your first expense or income!
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var transaction in transactions)
+                    {
+                        <tr>
+                            <td>@transaction.Date.ToShortDateString()</td>
+                            <td>
+                                @if (transaction.Category != null)
+                                {
+                                    <span class="badge @(transaction.Category.Type == "Income" ? "bg-success" : "bg-danger")">
+                                        @transaction.Category.Name
+                                    </span>
+                                }
+                            </td>
+                            <td>@(string.IsNullOrEmpty(transaction.Description) ? "-" : transaction.Description)</td>
+                            <td class="text-end fw-medium @(transaction.Category?.Type == "Income" ? "text-success" : "")">
+                                @(transaction.Category?.Type == "Income" ? "+" : "-")@transaction.Amount.ToString("C")
+                            </td>
+                            <td class="text-end">
+                                @{ var label = string.IsNullOrEmpty(transaction.Description) ? transaction.Amount.ToString("C") : transaction.Description; }
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a href="/transactions/edit/@transaction.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => ConfirmDelete(transaction.Id, label)"
+                                            title="Delete transaction">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@* Confirmation Modal *@
+@if (showDeleteConfirm)
+{
+    <div class="modal-backdrop-custom" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:1050;display:flex;align-items:center;justify-content:center;">
+        <div class="card" style="max-width:420px;width:90%;z-index:1055;">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-2"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Delete Transaction?</h5>
+                <p class="text-secondary mb-4">Are you sure you want to delete <strong>@deleteTargetLabel</strong>? This action cannot be undone.</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-danger flex-grow-1" @onclick="ExecuteDelete">
+                        <i class="bi bi-trash me-1"></i> Yes, Delete
+                    </button>
+                    <button class="btn btn-light" @onclick="CancelDelete">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Transaction>? transactions;
+    private string? userId;
+    private string? errorMessage;
+
+    private bool showDeleteConfirm = false;
+    private int deleteTargetId = 0;
+    private string deleteTargetLabel = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userId != null)
+        {
+            await LoadTransactions();
+        }
+    }
+
+    private async Task LoadTransactions()
+    {
+        transactions = await DbContext.Transactions
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId)
+            .OrderByDescending(t => t.Date)
+            .ToListAsync();
+    }
+
+    private void ConfirmDelete(int id, string label)
+    {
+        deleteTargetId = id;
+        deleteTargetLabel = label;
+        showDeleteConfirm = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirm = false;
+        deleteTargetId = 0;
+    }
+
+    private async Task ExecuteDelete()
+    {
+        showDeleteConfirm = false;
+        try
+        {
+            var transaction = await DbContext.Transactions.FindAsync(deleteTargetId);
+            if (transaction != null && transaction.UserId == userId)
+            {
+                DbContext.Transactions.Remove(transaction);
+                await DbContext.SaveChangesAsync();
+                await LoadTransactions();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not delete transaction: {ex.Message}";
+        }
+        deleteTargetId = 0;
+    }
+}

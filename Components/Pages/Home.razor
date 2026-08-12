@@ -1,0 +1,384 @@
+@page "/"
+@using Microsoft.EntityFrameworkCore
+@using budget4u.Data
+@using budget4u.Data.Models
+@using System.Security.Claims
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Dashboard - Budget4U</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        @if (isLoading)
+        {
+            <div class="d-flex align-items-center justify-content-center" style="min-height:60vh;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width:3rem;height:3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-secondary">Loading your finances...</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Hero Header -->
+            <div class="page-header mb-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                    <div>
+                        <h1 class="h2 mb-1">Welcome back! 👋</h1>
+                        <p class="text-secondary mb-0">Here's your financial overview for this month.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="/transactions/create" class="btn btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i> Add Transaction
+                        </a>
+                        <a href="/categories/create" class="btn btn-light">
+                            <i class="bi bi-tags me-1"></i> Add Category
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card h-100 summary-card income-card">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="text-secondary small text-uppercase fw-semibold">Total Income</span>
+                                <div class="summary-icon bg-success-soft">
+                                    <i class="bi bi-arrow-down-circle-fill text-success fs-5"></i>
+                                </div>
+                            </div>
+                            <div class="display-amount text-success">@totalIncome.ToString("C")</div>
+                            <p class="text-secondary small mt-1 mb-0">This month</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card h-100 summary-card expense-card">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="text-secondary small text-uppercase fw-semibold">Total Expenses</span>
+                                <div class="summary-icon bg-danger-soft">
+                                    <i class="bi bi-arrow-up-circle-fill text-danger fs-5"></i>
+                                </div>
+                            </div>
+                            <div class="display-amount text-danger">@totalExpenses.ToString("C")</div>
+                            <p class="text-secondary small mt-1 mb-0">This month</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card h-100 summary-card balance-card">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="text-secondary small text-uppercase fw-semibold">Net Balance</span>
+                                <div class="summary-icon bg-primary-soft">
+                                    <i class="bi bi-wallet2 text-primary fs-5"></i>
+                                </div>
+                            </div>
+                            <div class="display-amount @(netBalance >= 0 ? "text-success" : "text-danger")">@netBalance.ToString("C")</div>
+                            <p class="text-secondary small mt-1 mb-0">Income minus Expenses</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card h-100 summary-card">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="text-secondary small text-uppercase fw-semibold">Transactions</span>
+                                <div class="summary-icon bg-purple-soft">
+                                    <i class="bi bi-list-check text-purple fs-5"></i>
+                                </div>
+                            </div>
+                            <div class="display-amount">@transactionCount</div>
+                            <p class="text-secondary small mt-1 mb-0">This month</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Budget Progress by Category -->
+                <div class="col-lg-7">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="bi bi-bar-chart-fill text-primary me-2"></i>Budget Usage by Category
+                            </h5>
+
+                            @if (categoryStats.Any())
+                            {
+                                @foreach (var stat in categoryStats)
+                                {
+                                    var percent = stat.BudgetLimit > 0 ? Math.Min((double)(stat.Spent / stat.BudgetLimit) * 100, 100) : 0;
+                                    var barClass = percent >= 90 ? "danger" : percent >= 70 ? "warning" : "success";
+                                    <div class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <div class="fw-medium">@stat.Name</div>
+                                            <div class="small text-secondary">
+                                                @stat.Spent.ToString("C") @(stat.BudgetLimit > 0 ? $"/ {stat.BudgetLimit.ToString("C")}" : "(no limit)")
+                                            </div>
+                                        </div>
+                                        @if (stat.BudgetLimit > 0)
+                                        {
+                                            <div class="progress" style="height:10px;border-radius:8px;background:rgba(255,255,255,0.1);">
+                                                <div class="progress-bar bg-@barClass progress-bar-animated"
+                                                     role="progressbar"
+                                                     style="width:@percent.ToString("F0")%;border-radius:8px;transition:width 1s ease;"
+                                                     aria-valuenow="@((int)percent)"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <div class="text-end mt-1">
+                                                <small class="text-@barClass fw-medium">@percent.ToString("F0")%</small>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-secondary small fst-italic">No budget limit set</div>
+                                        }
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-5 text-secondary">
+                                    <i class="bi bi-bar-chart display-4 mb-3 d-block opacity-25"></i>
+                                    <p>No expense data this month.</p>
+                                    <a href="/transactions/create" class="btn btn-sm btn-primary mt-2">Log Your First Transaction</a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spending Donut Chart (CSS-based) + Recent Transactions -->
+                <div class="col-lg-5 d-flex flex-column gap-4">
+
+                    <!-- Spending breakdown visual -->
+                    <div class="card flex-grow-1">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="bi bi-pie-chart-fill text-primary me-2"></i>Spending Breakdown
+                            </h5>
+                            @if (categoryStats.Any(s => s.Spent > 0))
+                            {
+                                <!-- Simple visual breakdown using stacked bar -->
+                                <div class="breakdown-bar mb-4" style="display:flex;height:24px;border-radius:12px;overflow:hidden;gap:2px;">
+                                    @{ int ci = 0; string[] palette = {"#3b82f6","#8b5cf6","#10b981","#f59e0b","#ef4444","#06b6d4","#ec4899"}; }
+                                    @foreach (var stat in categoryStats.Where(s => s.Spent > 0))
+                                    {
+                                        var catPercent = totalExpenses > 0 ? (double)(stat.Spent / totalExpenses) * 100 : 0;
+                                        <div style="width:@catPercent.ToString("F1")%;background:@palette[ci % palette.Length];transition:width 0.8s ease;" title="@stat.Name: @stat.Spent.ToString("C")"></div>
+                                        ci++;
+                                    }
+                                </div>
+                                <div class="d-flex flex-column gap-2">
+                                    @{ int li = 0; }
+                                    @foreach (var stat in categoryStats.Where(s => s.Spent > 0))
+                                    {
+                                        var catPct = totalExpenses > 0 ? (double)(stat.Spent / totalExpenses) * 100 : 0;
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div style="width:12px;height:12px;border-radius:50%;background:@palette[li % palette.Length];flex-shrink:0;"></div>
+                                                <span class="small">@stat.Name</span>
+                                            </div>
+                                            <span class="small text-secondary">@catPct.ToString("F1")%</span>
+                                        </div>
+                                        li++;
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-4 text-secondary">
+                                    <i class="bi bi-pie-chart display-4 mb-3 d-block opacity-25"></i>
+                                    <p class="small">No spending data yet.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock-history text-primary me-2"></i>Recent Transactions
+                        </h5>
+                        <a href="/transactions" class="btn btn-sm btn-light">View All</a>
+                    </div>
+
+                    @if (recentTransactions.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var t in recentTransactions)
+                                    {
+                                        <tr>
+                                            <td class="text-secondary small">@t.Date.ToString("MMM d")</td>
+                                            <td>
+                                                @if (t.Category != null)
+                                                {
+                                                    <span class="badge @(t.Category.Type == "Income" ? "bg-success" : "bg-danger")">@t.Category.Name</span>
+                                                }
+                                            </td>
+                                            <td>@(string.IsNullOrEmpty(t.Description) ? "-" : t.Description)</td>
+                                            <td class="text-end fw-semibold @(t.Category?.Type == "Income" ? "text-success" : "")">
+                                                @(t.Category?.Type == "Income" ? "+" : "-")@t.Amount.ToString("C")
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-secondary">
+                            <i class="bi bi-inbox display-4 mb-3 d-block opacity-25"></i>
+                            <p>No transactions yet. <a href="/transactions/create">Log your first one!</a></p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <!-- Landing page for unauthenticated users -->
+        <div class="landing-hero d-flex align-items-center justify-content-center text-center" style="min-height:80vh;padding:2rem;">
+            <div style="max-width:600px;">
+                <div class="mb-4">
+                    <div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;box-shadow:0 10px 40px rgba(139,92,246,0.4);">
+                        <i class="bi bi-piggy-bank-fill fs-1 text-white"></i>
+                    </div>
+                </div>
+                <h1 class="display-5 fw-bold mb-3">Take control of your<br /><span style="background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">finances today.</span></h1>
+                <p class="lead text-secondary mb-5">Budget4U helps you track income, manage expenses, and visualize your spending — all in one beautiful, private dashboard.</p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="Account/Register" class="btn btn-primary btn-lg px-5">
+                        <i class="bi bi-person-plus me-2"></i>Get Started Free
+                    </a>
+                    <a href="Account/Login" class="btn btn-light btn-lg px-5">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                    </a>
+                </div>
+                <div class="row g-3 mt-5 text-start">
+                    <div class="col-md-4">
+                        <div class="card p-3">
+                            <i class="bi bi-shield-lock-fill text-primary fs-4 mb-2"></i>
+                            <div class="fw-semibold">Secure Accounts</div>
+                            <div class="small text-secondary">Your data is private and protected.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3">
+                            <i class="bi bi-graph-up-arrow text-success fs-4 mb-2"></i>
+                            <div class="fw-semibold">Visual Insights</div>
+                            <div class="small text-secondary">Progress bars and breakdowns at a glance.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3">
+                            <i class="bi bi-phone-fill text-purple fs-4 mb-2"></i>
+                            <div class="fw-semibold">Responsive</div>
+                            <div class="small text-secondary">Works on desktop and mobile.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool isLoading = true;
+    private string? userId;
+    private decimal totalIncome;
+    private decimal totalExpenses;
+    private decimal netBalance;
+    private int transactionCount;
+    private List<Transaction> recentTransactions = new();
+
+    private record CategoryStat(string Name, decimal Spent, decimal BudgetLimit);
+    private List<CategoryStat> categoryStats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userId != null)
+        {
+            await LoadDashboardData();
+        }
+
+        isLoading = false;
+    }
+
+    private async Task LoadDashboardData()
+    {
+        var now = DateTime.Today;
+        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var monthEnd = monthStart.AddMonths(1);
+
+        // Get all transactions this month for the current user
+        var monthlyTransactions = await DbContext.Transactions
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId && t.Date >= monthStart && t.Date < monthEnd)
+            .ToListAsync();
+
+        totalIncome = monthlyTransactions
+            .Where(t => t.Category?.Type == "Income")
+            .Sum(t => t.Amount);
+
+        totalExpenses = monthlyTransactions
+            .Where(t => t.Category?.Type == "Expense")
+            .Sum(t => t.Amount);
+
+        netBalance = totalIncome - totalExpenses;
+        transactionCount = monthlyTransactions.Count;
+
+        // Recent 5 transactions (all time, ordered by date)
+        recentTransactions = await DbContext.Transactions
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId)
+            .OrderByDescending(t => t.Date)
+            .Take(5)
+            .ToListAsync();
+
+        // Category budget stats (expense categories only)
+        var expenseCategories = await DbContext.Categories
+            .Where(c => c.UserId == userId && c.Type == "Expense")
+            .ToListAsync();
+
+        categoryStats = expenseCategories.Select(cat =>
+        {
+            var spent = monthlyTransactions
+                .Where(t => t.CategoryId == cat.Id)
+                .Sum(t => t.Amount);
+            return new CategoryStat(cat.Name, spent, cat.BudgetLimit);
+        })
+        .Where(s => s.Spent > 0 || s.BudgetLimit > 0)
+        .OrderByDescending(s => s.Spent)
+        .ToList();
+    }
+}

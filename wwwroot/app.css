@@ -1,0 +1,216 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Sleek Dark Mode Palette */
+    --bg-base: #0f172a;
+    --bg-surface: rgba(30, 41, 59, 0.7);
+    --bg-surface-hover: rgba(51, 65, 85, 0.8);
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1; /* Brighter for better contrast (was #94a3b8) */
+    --accent-primary: #3b82f6;
+    --accent-secondary: #8b5cf6;
+    --success: #10b981;
+    --danger: #ef4444;
+    --border-color: rgba(255, 255, 255, 0.15); /* Slightly more visible */
+    --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    --glass-blur: blur(12px);
+    
+    /* Overrides for Bootstrap */
+    --bs-body-bg: var(--bg-base);
+    --bs-body-color: var(--text-primary);
+    --bs-primary: var(--accent-primary);
+    --bs-link-color: var(--accent-primary);
+    --bs-link-hover-color: var(--accent-secondary);
+    --bs-border-color: var(--border-color);
+}
+
+html, body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+}
+
+/* Glassmorphism Cards */
+.card {
+    background: var(--bg-surface);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--glass-shadow);
+    border-radius: 16px;
+    color: var(--text-primary);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Tables in Dark Mode */
+.table {
+    color: #ffffff !important;
+    border-color: var(--border-color);
+    --bs-table-color: #ffffff;
+    --bs-table-hover-color: #ffffff;
+}
+.table td, .table th {
+    color: #ffffff !important;
+}
+.table-light, .table thead th {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+.table tbody tr:hover {
+    background-color: var(--bg-surface-hover);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border: none;
+    color: white;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+}
+
+.btn-light {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.btn-light:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* Form Inputs */
+.form-control, .form-select {
+    background-color: rgba(255, 255, 255, 0.05); /* Lighter background for contrast */
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+.form-control:focus, .form-select:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+    color: white;
+}
+.form-control::placeholder {
+    color: var(--text-secondary);
+}
+
+/* Nav Menu Sidebar tweaks */
+.sidebar {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--border-color);
+}
+
+.nav-item a.nav-link {
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 4px 12px;
+}
+.nav-item a.nav-link:hover, .nav-item a.nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateX(4px);
+}
+
+/* Badges */
+.badge {
+    border-radius: 12px;
+    padding: 0.4em 0.8em;
+    font-weight: 500;
+}
+.bg-success { background-color: var(--success) !important; color: #fff; }
+.bg-danger { background-color: var(--danger) !important; color: #fff; }
+
+/* Alerts in dark mode */
+.alert {
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+.alert-info { border-left: 4px solid var(--accent-primary); }
+.alert-warning { border-left: 4px solid #f59e0b; }
+.alert-link { color: var(--accent-primary); }
+
+/* Dashboard summary cards */
+.summary-card .display-amount {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.summary-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.bg-success-soft { background: rgba(16, 185, 129, 0.15); }
+.bg-danger-soft  { background: rgba(239, 68, 68, 0.15); }
+.bg-primary-soft { background: rgba(59, 130, 246, 0.15); }
+.bg-purple-soft  { background: rgba(139, 92, 246, 0.15); }
+.text-purple     { color: var(--accent-secondary); }
+
+/* Progress bars */
+.progress { background: rgba(255,255,255,0.07); }
+.progress-bar { border-radius: 8px; }
+
+/* Card body label style */
+.card-title { font-family: 'Outfit', sans-serif; font-weight: 600; }
+
+/* Form labels */
+.form-label { color: var(--text-primary); font-weight: 500; }
+.form-text   { color: var(--text-secondary); }
+
+/* Content padding */
+.content { padding-top: 1.5rem; }
+
+/* Micro-animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.page-header { animation: fadeIn 0.4s ease-out forwards; }
+.card {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Responsive tweaks */
+@media (max-width: 767px) {
+    .summary-card .display-amount { font-size: 1.4rem; }
+}

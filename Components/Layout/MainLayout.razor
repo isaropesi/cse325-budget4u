@@ -1,0 +1,32 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex justify-content-end align-items-center" style="background:rgba(15,23,42,0.9);border-bottom:1px solid var(--border-color);">
+            <AuthorizeView>
+                <Authorized>
+                    <small class="text-secondary me-2"><i class="bi bi-shield-check text-success me-1"></i>Logged in as <strong>@context.User.Identity?.Name</strong></small>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="Account/Login" class="btn btn-sm btn-primary me-2">Login</a>
+                    <a href="Account/Register" class="btn btn-sm btn-light">Register</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;padding:1rem 1.5rem;border-radius:8px;position:fixed;bottom:1rem;right:1rem;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    An unhandled error has occurred.
+    <a href="." class="reload" style="color:white;font-weight:600;margin-left:0.5rem;">Reload</a>
+    <span class="dismiss" style="cursor:pointer;margin-left:1rem;opacity:0.7;">✕</span>
+</div>

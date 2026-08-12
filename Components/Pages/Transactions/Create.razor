@@ -1,0 +1,109 @@
+@page "/transactions/create"
+@using Microsoft.EntityFrameworkCore
+@using budget4u.Data
+@using budget4u.Data.Models
+@using System.Security.Claims
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>New Transaction - Budget4U</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body p-4">
+                <h2 class="card-title h4 mb-4">Log New Transaction</h2>
+
+                @if (categories == null)
+                {
+                    <p><em>Loading categories...</em></p>
+                }
+                else if (!categories.Any())
+                {
+                    <div class="alert alert-warning">
+                        You need to create at least one category before logging a transaction.
+                        <br />
+                        <a href="/categories/create" class="alert-link">Create a Category</a>
+                    </div>
+                }
+                else
+                {
+                    <EditForm Model="transaction" OnValidSubmit="HandleSubmit" FormName="createTransaction">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger mb-3" />
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label fw-medium">Amount ($)</label>
+                            <InputNumber id="amount" class="form-control form-control-lg" @bind-Value="transaction.Amount" placeholder="0.00" onfocus="this.select()" />
+                            <ValidationMessage For="() => transaction.Amount" class="text-danger mt-1 small" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label fw-medium">Date</label>
+                            <InputDate id="date" class="form-control form-control-lg" @bind-Value="transaction.Date" />
+                            <ValidationMessage For="() => transaction.Date" class="text-danger mt-1 small" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="category" class="form-label fw-medium">Category</label>
+                            <InputSelect id="category" class="form-select form-select-lg" @bind-Value="transaction.CategoryId">
+                                <option value="0">Select a category...</option>
+                                @foreach (var cat in categories)
+                                {
+                                    <option value="@cat.Id">@cat.Name (@cat.Type)</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => transaction.CategoryId" class="text-danger mt-1 small" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="form-label fw-medium">Description (Optional)</label>
+                            <InputText id="description" class="form-control form-control-lg" @bind-Value="transaction.Description" placeholder="e.g. Weekly groceries" />
+                            <ValidationMessage For="() => transaction.Description" class="text-danger mt-1 small" />
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg flex-grow-1">Save Transaction</button>
+                            <a href="/transactions" class="btn btn-light btn-lg">Cancel</a>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private Transaction transaction { get; set; } = new Transaction { Date = DateTime.Today };
+
+    private List<Category>? categories;
+    private string? userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userId != null)
+        {
+            categories = await DbContext.Categories
+                .Where(c => c.UserId == userId)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (userId != null && transaction.CategoryId != 0)
+        {
+            transaction.UserId = userId;
+            DbContext.Transactions.Add(transaction);
+            await DbContext.SaveChangesAsync();
+            NavigationManager.NavigateTo("/transactions");
+        }
+    }
+}
