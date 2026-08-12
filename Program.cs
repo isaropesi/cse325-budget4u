@@ -23,6 +23,15 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+// Azure App Service Linux runs from a read-only ZIP package by default.
+// To allow SQLite to write to the database, we move it to the persistent /home directory.
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME")))
+{
+    var homePath = Environment.GetEnvironmentVariable("HOME") ?? "/home";
+    connectionString = $"DataSource={Path.Combine(homePath, "app.db")};Cache=Shared";
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
