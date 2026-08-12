@@ -40,12 +40,19 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 
 var app = builder.Build();
 
-// Automatically apply database migrations on startup
-// This ensures the SQLite database is created in Azure since we ignored the local app.db in git.
-using (var scope = app.Services.CreateScope())
+string? startupError = null;
+
+try
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    dbContext.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.Migrate();
+    }
+}
+catch (Exception ex)
+{
+    startupError = ex.ToString();
 }
 
 // Configure the HTTP request pipeline.
@@ -70,5 +77,7 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+app.MapGet("/diagnostics", () => startupError ?? "No startup error");
 
 app.Run();
